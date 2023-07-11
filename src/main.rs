@@ -1,6 +1,6 @@
 use std::io::{stdin, BufRead};
 
-use chrono::{NaiveTime, Duration, Utc};
+use chrono::{NaiveTime, Duration, Local};
 use clap::Parser;
 use atty::Stream;
 
@@ -51,17 +51,20 @@ fn live_spans() -> Vec<Duration> {
     let mut durations = vec![];
     let mut seen: Option<NaiveTime> = None;
     for _line in stdin().lock().lines() {
-        let mut now = Utc::now().naive_local().time();
+        let mut now = Local::now().naive_local().time();
         if let Some(previous) = &seen {
             if now < *previous {
                 now = now + Duration::hours(12);
             }
-            println!("Closing span from {previous} - {now}");
+            let prev_time = previous.format("%H:%M");
+            let now_time = now.format("%H:%M");
+            println!("Closing span from {prev_time} - {now_time}");
             println!("Status: Away");
             durations.push(now - *previous);
             seen = None;
         } else {
-            println!("Starting span at {now}");
+            let now_time = now.format("%H:%M");
+            println!("Starting span at {now_time}");
             println!("Status: Working");
             seen = Some(now);
         }
