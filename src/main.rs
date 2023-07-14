@@ -4,16 +4,17 @@ use chrono::{NaiveTime, Duration, Local};
 use clap::Parser;
 use atty::Stream;
 
+mod modes;
+use modes::Modes;
+
 /// A simple program to track time spans
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// When passed the script will collect time spans live. Close a span by pressing ENTER and
-    /// finish the calulation by passing in an EOF character
-    #[arg(short, long, default_value_t = false)]
-    live: bool,
+    /// Specify how the program should behave
+    #[clap(value_enum, default_value_t = Modes::default())]
+    mode: Modes,
 }
-
 fn parse_time(time_str: &str) -> NaiveTime {
     NaiveTime::parse_from_str(time_str, "%H:%M")
         .expect(&format!("Failed to parse time from {time_str}"))
@@ -75,18 +76,37 @@ fn live_spans() -> Vec<Duration> {
     return durations;
 }
 
+fn get_prediction() -> NaiveTime {
+    println!("Calculating an end time prediction...\nWhen did you start?\n");
+    let mut start_time = String::new();
+    let _ = stdin().read_line(&mut start_time);
+    let start = parse_time(start_time.trim());
+    println!("Started at {0}", start.format("%H:%M"));
+    println!("How many minutes were you on break?\n");
+    let mut break_time = String::new();
+    let _ = stdin().read_line(&mut break_time);
+    let break_duration = break_time.trim().parse::<i64>().unwrap();
+    let work_time = Duration::hours(8) + Duration::minutes(break_duration);
+    return start + work_time;
+}
+
 fn main() {
     let args = Args::parse();
     let is_terminal = atty::is(Stream::Stdin);
 
-    if args.live && !is_terminal {
-        panic!("Cannot run live mode on piped input");
+    if !is_terminal && !args.mode.supports_piped_input() {
+        panic!("Cannot run {0} mode on piped input", args.mode);
     }
 
-    let durations = if args.live {
-        live_spans()
-    } else {
-        all_at_once(is_terminal)
+    if args.mode == Modes::Prediction {
+        println!("Your work will end at {}", get_prediction());
+        return;
+    }
+
+    let durations = match args.mode {
+        Modes::TimeTable => all_at_once(is_terminal),
+        Modes::Live => live_spans(),
+        Modes::Prediction => panic!("Should have already returned before this"),
     };
 
     let total_minutes: i64  = durations.iter().map(|d| { d.num_minutes() }).sum();
