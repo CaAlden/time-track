@@ -1,11 +1,12 @@
 [package]
 name = "time-track"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.72"
 atty = "0.2.14"
 chrono = "0.4.26"
 clap = { version = "4.3.11", features = ["derive"] }

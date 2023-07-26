@@ -3,6 +3,7 @@ use std::io::{stdin, BufRead};
 use chrono::{NaiveTime, Duration, Local};
 use clap::Parser;
 use atty::Stream;
+use anyhow::Result;
 
 mod modes;
 use modes::Modes;
@@ -15,12 +16,12 @@ struct Args {
     #[clap(value_enum, default_value_t = Modes::default())]
     mode: Modes,
 }
-fn parse_time(time_str: &str) -> NaiveTime {
-    NaiveTime::parse_from_str(time_str, "%H:%M")
-        .expect(&format!("Failed to parse time from {time_str}"))
+fn parse_time(time_str: &str) -> Result<NaiveTime> {
+    let time = NaiveTime::parse_from_str(time_str, "%H:%M")?;
+    Ok(time)
 }
 
-fn all_at_once(is_terminal: bool) -> Vec<Duration> {
+fn all_at_once(is_terminal: bool) -> Result<Vec<Duration>> {
     if is_terminal {
         println!("Enter simple times one per line. Send an EOF character to sum all time spans");
     }
@@ -28,10 +29,10 @@ fn all_at_once(is_terminal: bool) -> Vec<Duration> {
     let mut durations = vec![];
     let mut seen: Option<String> = None;
     for line in stdin().lock().lines() {
-        let cleaned = line.expect("failed to read a line").trim().to_string();
+        let cleaned = line?.trim().to_string();
         if let Some(previous) = &seen {
-            let first = parse_time(previous);
-            let mut second = parse_time(&cleaned);
+            let first = parse_time(previous)?;
+            let mut second = parse_time(&cleaned)?;
             if second < first {
                 second = second + Duration::hours(12);
             }
@@ -44,10 +45,10 @@ fn all_at_once(is_terminal: bool) -> Vec<Duration> {
     if let Some(unpaired) = seen {
         println!("Ended with an open span from {unpaired}... Ignoring");
     }
-    return durations;
+    return Ok(durations);
 }
 
-fn live_spans() -> Vec<Duration> {
+fn live_spans() -> Result<Vec<Duration>> {
     println!("Tracking Spans Live. Press ENTER to start a span\n");
     let mut durations = vec![];
     let mut seen: Option<NaiveTime> = None;
@@ -78,21 +79,21 @@ fn live_spans() -> Vec<Duration> {
         }
         durations.push(now - unpaired);
     }
-    return durations;
+    return Ok(durations);
 }
 
-fn get_prediction() -> NaiveTime {
+fn get_prediction() -> Result<NaiveTime> {
     println!("Calculating an end time prediction...\nWhen did you start?\n");
     let mut start_time = String::new();
     let _ = stdin().read_line(&mut start_time);
-    let start = parse_time(start_time.trim());
+    let start = parse_time(start_time.trim())?;
     println!("Started at {0}", start.format("%H:%M"));
     println!("How many minutes were you on break?\n");
     let mut break_time = String::new();
     let _ = stdin().read_line(&mut break_time);
-    let break_duration = break_time.trim().parse::<i64>().unwrap();
+    let break_duration = break_time.trim().parse::<i64>()?;
     let work_time = Duration::hours(8) + Duration::minutes(break_duration);
-    return start + work_time;
+    return Ok(start + work_time);
 }
 
 fn main() {
@@ -104,19 +105,28 @@ fn main() {
     }
 
     if args.mode == Modes::Prediction {
-        println!("Your work will end at {}", get_prediction());
+        if let Ok(prediction) = get_prediction() {
+            println!("Your work will end at {}", prediction);
+        } else {
+            println!("Something went wrong...");
+        }
         return;
     }
 
-    let durations = match args.mode {
+    let maybe_durations = match args.mode {
         Modes::TimeTable => all_at_once(is_terminal),
         Modes::Live => live_spans(),
-        Modes::Prediction => panic!("Should have already returned before this"),
+        Modes::Prediction => Err(anyhow::anyhow!("Should have already returned before this")),
     };
 
-    let total_minutes: i64  = durations.iter().map(|d| { d.num_minutes() }).sum();
-    let minutes = total_minutes % 60;
-    let hours = total_minutes / 60;
+    match maybe_durations {
+        Ok(durations) => {
+            let total_minutes: i64  = durations.iter().map(|d| { d.num_minutes() }).sum();
+            let minutes = total_minutes % 60;
+            let hours = total_minutes / 60;
 
-    println!("You have been working for {hours} hour(s) and {minutes} minute(s)");
+            println!("You have been working for {hours} hour(s) and {minutes} minute(s)");
+        },
+        Err(err) => eprintln!("{}\nExiting...", err),
+    }
 }
