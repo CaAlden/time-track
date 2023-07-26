@@ -71,7 +71,12 @@ fn live_spans() -> Vec<Duration> {
         }
     }
     if let Some(unpaired) = seen {
-        println!("Ended with an open span from {unpaired}... Ignoring");
+        println!("Closing unpaired span now");
+        let mut now = Local::now().naive_local().time();
+        if now < unpaired {
+            now = now + Duration::hours(12);
+        }
+        durations.push(now - unpaired);
     }
     return durations;
 }
