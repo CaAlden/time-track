@@ -124,8 +124,16 @@ fn main() {
             let total_minutes: i64  = durations.iter().map(|d| { d.num_minutes() }).sum();
             let minutes = total_minutes % 60;
             let hours = total_minutes / 60;
+            let pluralized_hours = match hours {
+                1 => "hour",
+                _ => "hours",
+            };
+            let pluralized_minutes = match minutes {
+                1 => "minute",
+                _ => "minutes",
+            };
 
-            println!("You have been working for {hours} hour(s) and {minutes} minute(s)");
+            println!("You have been working for {hours} {pluralized_hours} and {minutes} {pluralized_minutes}");
         },
         Err(err) => eprintln!("{}\nExiting...", err),
     }
