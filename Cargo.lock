@@ -360,7 +360,7 @@ dependencies = [
 
 [[package]]
 name = "time-track"
-version = "0.3.3"
+version = "0.3.5"
 dependencies = [
  "anyhow",
  "atty",
