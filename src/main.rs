@@ -71,7 +71,10 @@ fn all_at_once(is_terminal: bool) -> Result<Vec<Duration>> {
         }
     }
     if let Some(unpaired) = seen {
-        println!("Ended with an open span from {unpaired}... Ignoring");
+        let now = Local::now().naive_local().time();
+        let last = adjust_last(&now, parse_time(&unpaired)?.time());
+        println!("Ended with an open span from {unpaired}... assuming now: {}", now.format("%H:%M"));
+        durations.push(now - last);
     }
     return Ok(durations);
 }
