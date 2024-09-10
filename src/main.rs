@@ -30,6 +30,24 @@ fn parse_time(time_str: &str) -> Result<NaiveDateTime> {
     Ok(naive_date)
 }
 
+fn adjust_last(first: &NaiveTime, second: NaiveTime) -> NaiveTime {
+    // The following logic attempts to handle wrapping from AM -> PM and also from PM ->
+    // AM but cannot handle multiple days in a single span
+    if (second < *first) && first.signed_duration_since(epoch()).num_hours() < 12 {
+        // Assuming wrapped to PM
+        // first = 8:00
+        // second: 1:00
+        second + Duration::hours(12)
+    } else if second < *first {
+        // Wrapped to a new day because first was after noon.
+        // first = 14:40
+        // second = 1:30
+        second + Duration::hours(24)
+    } else {
+        second
+    }
+}
+
 /// The default way of calculating time. Time values are given one per line and subsequent pairs of
 /// lines are considered time spans. If an odd number of spans is given, then the final time value
 /// is ignored.
@@ -44,22 +62,9 @@ fn all_at_once(is_terminal: bool) -> Result<Vec<Duration>> {
         let cleaned = line?.trim().to_string();
         if let Some(previous) = &seen {
             let first = parse_time(previous)?;
-            let mut second = parse_time(&cleaned)?;
+            let second = adjust_last(&first.time(), parse_time(&cleaned)?.time());
 
-            // The following logic attempts to handle wrapping from AM -> PM and also from PM ->
-            // AM but cannot handle multiple days in a single span
-            if (second < first) && first.time().signed_duration_since(epoch()).num_hours() < 12 {
-                // Assuming wrapped to PM
-                // first = 8:00
-                // second: 1:00
-                second = second + Duration::hours(12);
-            } else if second < first {
-                // Wrapped to a new day because first was after noon.
-                // first = 14:40
-                // second = 1:30
-                second = second + Duration::hours(24)
-            }
-            durations.push(second - first);
+            durations.push(second - first.time());
             seen = None;
         } else {
             seen = Some(cleaned.to_string());
@@ -80,9 +85,7 @@ fn live_spans() -> Result<Vec<Duration>> {
     for _line in stdin().lock().lines() {
         let mut now = Local::now().naive_local().time();
         if let Some(previous) = &seen {
-            if now < *previous {
-                now = now + Duration::hours(12);
-            }
+            now = adjust_last(previous, now);
             let prev_time = previous.format("%H:%M");
             let now_time = now.format("%H:%M");
             println!("Closing span from {prev_time} - {now_time}");
@@ -99,9 +102,7 @@ fn live_spans() -> Result<Vec<Duration>> {
     if let Some(unpaired) = seen {
         println!("Closing unpaired span now");
         let mut now = Local::now().naive_local().time();
-        if now < unpaired {
-            now = now + Duration::hours(12);
-        }
+        now = adjust_last(&unpaired, now);
         durations.push(now - unpaired);
     }
     return Ok(durations);
