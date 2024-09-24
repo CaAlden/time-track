@@ -6,9 +6,6 @@ pub enum Modes {
     TimeTable,
     /// Perform live tracking of the user's time until an EOF character is received.
     Live,
-    /// Predict a user's day end time (assuming a 9 hour work day) based on the user's start time
-    /// and the duration of a user's break.
-    Prediction,
 }
 
 impl Modes {
@@ -18,7 +15,6 @@ impl Modes {
         match self {
             Modes::TimeTable => true,
             Modes::Live => false,
-            Modes::Prediction => false,
         }
     }
 }

@@ -111,20 +111,49 @@ fn live_spans() -> Result<Vec<Duration>> {
     return Ok(durations);
 }
 
-/// Predict when the given amount of work has completed based on when the user started working and
-/// how long they expect to be on break total.
-fn get_prediction(hours: i64) -> Result<NaiveTime> {
-    println!("Calculating an end time prediction...\nWhen did you start?\n");
-    let mut start_time = String::new();
-    let _ = stdin().read_line(&mut start_time);
-    let start = parse_time(start_time.trim())?;
-    println!("Started at {0}", start.format("%H:%M"));
-    println!("How many minutes were you on break?\n");
-    let mut break_time = String::new();
-    let _ = stdin().read_line(&mut break_time);
-    let break_duration = break_time.trim().parse::<i64>()?;
-    let work_time = Duration::hours(hours) + Duration::minutes(break_duration);
-    return Ok(start.time() + work_time);
+fn to_hrs_minutes(total_minutes: i64) -> (i64, i64) {
+    let minutes = total_minutes % 60;
+    let hours = total_minutes / 60;
+    (hours, minutes)
+}
+
+fn show_time(hours: i64, minutes: i64) -> String {
+    let pluralized_hours = match hours {
+        1 => "1 hour".to_string(),
+        _ => format!("{hours} hours"),
+    };
+    let pluralized_minutes = match minutes {
+        1 => "1 minute".to_string(),
+        _ => format!("{minutes} minutes"),
+    };
+
+    if hours == 0 {
+        return pluralized_minutes.to_string();
+    }
+
+    if minutes == 0 {
+        return pluralized_hours.to_string();
+    }
+
+    return format!("{pluralized_hours} and {pluralized_minutes}");
+}
+
+fn get_charaterized_time_remaining(total_minutes: i64, target_minutes: i64) -> String {
+    if total_minutes == target_minutes {
+        return "Exactly done".to_string();
+    }
+
+    if total_minutes > target_minutes {
+        let diff = total_minutes - target_minutes;
+        let (hours, minutes) = to_hrs_minutes(diff);
+        return format!("You have overworked {}", show_time(hours, minutes))
+    } else {
+        let diff = target_minutes - total_minutes;
+        let (hours, minutes) = to_hrs_minutes(diff);
+        let end_at = (Local::now() + Duration::minutes(diff)).time();
+        let end_str = end_at.format("%-I:%M %p");
+        return format!("You have {} remaining (end at {} starting now)", show_time(hours, minutes), end_str)
+    }
 }
 
 fn main() {
@@ -135,36 +164,19 @@ fn main() {
         panic!("Cannot run {0} mode on piped input", args.mode);
     }
 
-    if args.mode == Modes::Prediction {
-        if let Ok(prediction) = get_prediction(8 /* hours */) {
-            println!("Your work will end at {}", prediction);
-        } else {
-            println!("Something went wrong...");
-        }
-        return;
-    }
-
     let maybe_durations = match args.mode {
         Modes::TimeTable => all_at_once(is_terminal),
         Modes::Live => live_spans(),
-        Modes::Prediction => Err(anyhow::anyhow!("Should have already returned before this")),
     };
 
     match maybe_durations {
         Ok(durations) => {
             let total_minutes: i64  = durations.iter().map(|d| { d.num_minutes() }).sum();
-            let minutes = total_minutes % 60;
-            let hours = total_minutes / 60;
-            let pluralized_hours = match hours {
-                1 => "hour",
-                _ => "hours",
-            };
-            let pluralized_minutes = match minutes {
-                1 => "minute",
-                _ => "minutes",
-            };
+            let (hours, minutes) = to_hrs_minutes(total_minutes);
 
-            println!("You have been working for {hours} {pluralized_hours} and {minutes} {pluralized_minutes}");
+            println!("-----------------");
+            println!("You have been working for {}", show_time(hours, minutes));
+            println!("{}", get_charaterized_time_remaining(total_minutes, 8 * 60))
         },
         Err(err) => eprintln!("{}\nExiting...", err),
     }
