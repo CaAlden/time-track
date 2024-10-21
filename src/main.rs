@@ -15,6 +15,9 @@ struct Args {
     /// Specify how the program should behave
     #[clap(value_enum, default_value_t = Modes::default())]
     mode: Modes,
+
+    #[arg(long, default_value_t = 8)]
+    hours: i64,
 }
 
 fn epoch() -> NaiveTime {
@@ -176,7 +179,7 @@ fn main() {
 
             println!("-----------------");
             println!("You have been working for {}", show_time(hours, minutes));
-            println!("{}", get_charaterized_time_remaining(total_minutes, 8 * 60))
+            println!("{}", get_charaterized_time_remaining(total_minutes, args.hours * 60))
         },
         Err(err) => eprintln!("{}\nExiting...", err),
     }
