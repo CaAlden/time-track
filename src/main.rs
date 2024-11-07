@@ -10,15 +10,17 @@ use args::Args;
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    println!("{:?}", args);
     let stdin = io::stdin();
+    println!("Input times one per line. Send an EOF character to finish inputting...");
     let mut lines: Vec<String> = vec![];
     for line in stdin.lock().lines() {
         lines.push(line.expect("Issues when reading from stdin"));
     }
 
+    // This is immeidately going to be turned back into a DateTime, which the doc says is fine
+    #[allow(deprecated)]
     let midnight = Local::now().date().and_hms_opt(0, 0, 0).ok_or(anyhow!("Expected midnight to exist"))?;
-    let times = time::from_stream(&midnight.date(), lines.iter())?;
+    let times = time::from_stream(&midnight, lines.iter())?;
 
     let mut total_minutes: i64 = 0;
     let mut first: Option<DateTime<Local>> = None;

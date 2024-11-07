@@ -1,9 +1,9 @@
-use chrono::{Duration, Local, DateTime, Date};
+use chrono::{Duration, Local, DateTime};
 use anyhow::{Result, anyhow};
 use std::iter::Iterator;
 use regex::Regex;
 
-fn parse_datetime(reference_date: &Date<Local>, s: &str) -> Result<DateTime<Local>> {
+fn parse_datetime(reference_date: &DateTime<Local>, s: &str) -> Result<DateTime<Local>> {
     let re = Regex::new(r"^\s*([12]?\d):([012345]\d)\s*$")?;
     let (_, [hrs, mins]) = re.captures(s).ok_or(anyhow!(format!("Failed to parse \"{s}\" as a time")))?.extract();
     let mins: u32 = mins.parse()?;
@@ -15,10 +15,11 @@ fn parse_datetime(reference_date: &Date<Local>, s: &str) -> Result<DateTime<Loca
         date = *reference_date + Duration::days(num_days.into());
         hrs = hrs % 24;
     }
-    Ok(date.and_hms_opt(hrs, mins, 0).ok_or(anyhow!(format!("{hrs}:{mins} not a real time")))?)
+    #[allow(deprecated)]
+    Ok(date.date().and_hms_opt(hrs, mins, 0).ok_or(anyhow!(format!("{}:{:0>2} not a real time", hrs, mins)))?)
 }
 
-pub fn from_stream<'a>(reference_date: &Date<Local>, stream: impl Iterator<Item = &'a String>) -> Result<Vec<DateTime<Local>>> {
+pub fn from_stream<'a>(reference_date: &DateTime<Local>, stream: impl Iterator<Item = &'a String>) -> Result<Vec<DateTime<Local>>> {
     let mut durations: Vec<DateTime<Local>> = vec![];
     for val in stream {
         durations.push(parse_datetime(reference_date, val)?);
