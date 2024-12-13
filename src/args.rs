@@ -11,4 +11,8 @@ pub struct Args {
     /// How many minutes you intend to work (sums with `hours`)
     #[arg(long, default_value_t = 0)]
     pub minutes: i64,
+
+    /// If true, the the hours and minutes fields are treated as subtracting from 8 hours
+    #[arg(long, default_value_t = false)]
+    pub discount: bool,
 }

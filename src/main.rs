@@ -42,7 +42,11 @@ fn main() -> Result<()> {
         total_minutes += (now - remaining).num_minutes();
     }
 
-    let target_minutes = args.hours * 60 + args.minutes;
+    let target_minutes = if args.discount {
+        (8 * 60) - (args.hours * 60 + args.minutes)
+    } else {
+         args.hours * 60 + args.minutes
+    };
     println!("{}", time::get_charaterized_time_remaining(total_minutes, target_minutes));
     Ok(())
 }
