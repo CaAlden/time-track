@@ -11,6 +11,21 @@ use args::Args;
 fn main() -> Result<()> {
     let args = Args::parse();
     let stdin = io::stdin();
+    let hours = args.hours.unwrap_or(
+        if args.discount {
+            0
+        } else {
+            8
+        }
+    );
+
+    let target_minutes = if args.discount {
+        (8 * 60) - ((hours * 60) + args.minutes)
+    } else {
+         hours * 60 + args.minutes
+    };
+    let (hrs, mins) = time::to_hrs_minutes(target_minutes);
+    println!("Working for {}", time::show_time(hrs, mins));
     println!("Input times one per line. Send an EOF character to finish inputting...");
     let mut lines: Vec<String> = vec![];
     for line in stdin.lock().lines() {
@@ -42,11 +57,6 @@ fn main() -> Result<()> {
         total_minutes += (now - remaining).num_minutes();
     }
 
-    let target_minutes = if args.discount {
-        (8 * 60) - (args.hours * 60 + args.minutes)
-    } else {
-         args.hours * 60 + args.minutes
-    };
     println!("{}", time::get_charaterized_time_remaining(total_minutes, target_minutes));
     Ok(())
 }

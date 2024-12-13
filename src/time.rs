@@ -27,7 +27,7 @@ pub fn from_stream<'a>(reference_date: &DateTime<Local>, stream: impl Iterator<I
     return Ok(durations);
 }
 
-fn show_time(hours: i64, minutes: i64) -> String {
+pub fn show_time(hours: i64, minutes: i64) -> String {
     let pluralized_hours = match hours {
         1 => "1 hour".to_string(),
         _ => format!("{hours} hours"),
@@ -48,7 +48,7 @@ fn show_time(hours: i64, minutes: i64) -> String {
     return format!("{pluralized_hours} and {pluralized_minutes}");
 }
 
-fn to_hrs_minutes(total_minutes: i64) -> (i64, i64) {
+pub fn to_hrs_minutes(total_minutes: i64) -> (i64, i64) {
     let minutes = total_minutes % 60;
     let hours = total_minutes / 60;
     (hours, minutes)
