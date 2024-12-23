@@ -53,7 +53,8 @@ fn main() -> Result<()> {
 
     if let Some(remaining) = first {
         let now = Local::now();
-        println!("Ended with unclosed span... assuming ending now: {}", now.time());
+        let now_str = now.format("%-I:%M %p");
+        println!("Ended with unclosed span... assuming ending now: {}", now_str);
         total_minutes += (now - remaining).num_minutes();
     }
 
