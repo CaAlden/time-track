@@ -39,6 +39,7 @@ fn main() -> Result<()> {
 
     let mut total_minutes: i64 = 0;
     let mut first: Option<DateTime<Local>> = None;
+    let mut last: Option<DateTime<Local>> = None;
     for time in times {
         match first {
             None => {
@@ -46,7 +47,8 @@ fn main() -> Result<()> {
             },
             Some(prev) => {
                 total_minutes += (time - prev).num_minutes();
-                first = None
+                first = None;
+                last = Some(time);
             }
         }
     }
@@ -58,6 +60,6 @@ fn main() -> Result<()> {
         total_minutes += (now - remaining).num_minutes();
     }
 
-    println!("{}", time::get_charaterized_time_remaining(total_minutes, target_minutes));
+    println!("{}", time::get_charaterized_time_remaining(total_minutes, target_minutes, last.unwrap_or_else(|| Local::now())));
     Ok(())
 }

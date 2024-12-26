@@ -54,7 +54,11 @@ pub fn to_hrs_minutes(total_minutes: i64) -> (i64, i64) {
     (hours, minutes)
 }
 
-pub fn get_charaterized_time_remaining(total_minutes: i64, target_minutes: i64) -> String {
+pub fn get_charaterized_time_remaining(
+    total_minutes: i64,
+    target_minutes: i64,
+    ended_at: DateTime<Local>,
+) -> String {
     if total_minutes == target_minutes {
         return "Exactly done".to_string();
     }
@@ -66,8 +70,17 @@ pub fn get_charaterized_time_remaining(total_minutes: i64, target_minutes: i64) 
     } else {
         let diff = target_minutes - total_minutes;
         let (hours, minutes) = to_hrs_minutes(diff);
-        let end_at = (Local::now() + Duration::minutes(diff)).time();
+        let end_at = (ended_at + Duration::minutes(diff)).time();
         let end_str = end_at.format("%-I:%M %p");
-        return format!("You have {} remaining (end at {} starting now)", show_time(hours, minutes), end_str)
+        return if ended_at > Local::now() {
+          format!(
+              "You have {} remaining (end at {} starting from {})",
+              show_time(hours, minutes),
+              end_str,
+              ended_at.format("%-I:%M %p"),
+          )
+        } else {
+          format!("You have {} remaining (end at {} starting now)", show_time(hours, minutes), end_str)
+        }
     }
 }
