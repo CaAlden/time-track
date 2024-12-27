@@ -70,17 +70,20 @@ pub fn get_charaterized_time_remaining(
     } else {
         let diff = target_minutes - total_minutes;
         let (hours, minutes) = to_hrs_minutes(diff);
-        let end_at = (ended_at + Duration::minutes(diff)).time();
-        let end_str = end_at.format("%-I:%M %p");
-        return if ended_at > Local::now() {
-          format!(
-              "You have {} remaining (end at {} starting from {})",
-              show_time(hours, minutes),
-              end_str,
-              ended_at.format("%-I:%M %p"),
-          )
+        let now = Local::now();
+        return if ended_at > now {
+            let end_at = (ended_at + Duration::minutes(diff)).time();
+            let end_str = end_at.format("%-I:%M %p");
+            format!(
+                "You have {} remaining (end at {} starting from {})",
+                show_time(hours, minutes),
+                end_str,
+                ended_at.format("%-I:%M %p"),
+            )
         } else {
-          format!("You have {} remaining (end at {} starting now)", show_time(hours, minutes), end_str)
+            let end_at = (now + Duration::minutes(diff)).time();
+            let end_str = end_at.format("%-I:%M %p");
+            format!("You have {} remaining (end at {} starting now)", show_time(hours, minutes), end_str)
         }
     }
 }
